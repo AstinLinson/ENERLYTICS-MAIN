@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Grid — Energy Control Dashboard</title>
+  <meta name="description" content="Real-time Smart Grid Energy Monitoring and Control Dashboard with AI decision engine, relay control, and multilingual alerts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- ApexCharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
+</head>
+<body>
+
+<!-- ====================== ALERT BANNER ====================== -->
+<div id="alert-banner" class="alert-banner hidden">
+  <div class="alert-inner">
+    <span class="alert-icon">⚡</span>
+    <span id="alert-text"></span>
+    <button id="alert-close" onclick="dismissAlert()">✕</button>
+  </div>
+</div>
+
+<!-- ====================== HEADER ====================== -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <div>
+        <span class="logo-title">SmartGrid</span>
+        <span class="logo-sub">Energy Management System</span>
+      </div>
+    </div>
+  </div>
+  <div class="header-center">
+    <div class="connection-status" id="conn-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Connecting…</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-time" id="header-time"></div>
+    <div class="sih-badge">SIH 2025</div>
+  </div>
+</header>
+
+<!-- ====================== MAIN LAYOUT ====================== -->
+<main class="main">
+
+  <!-- ===== METRIC CARDS ROW ===== -->
+  <section class="cards-grid">
+
+    <div class="card card--voltage" id="card-voltage">
+      <div class="card-header">
+        <span class="card-icon">⚡</span>
+        <span class="card-label">Voltage</span>
+      </div>
+      <div class="card-value"><span id="val-voltage">--</span><span class="card-unit">V</span></div>
+      <div class="card-sub">
+        <span id="volt-status" class="badge badge--neutral">--</span>
+      </div>
+      <div class="card-sparkline" id="spark-voltage"></div>
+    </div>
+
+    <div class="card card--current" id="card-current">
+      <div class="card-header">
+        <span class="card-icon">〜</span>
+        <span class="card-label">Current</span>
+      </div>
+      <div class="card-value"><span id="val-current">--</span><span class="card-unit">A</span></div>
+      <div class="card-sub">
+        <span class="label-muted">Phase Load</span>
+      </div>
+      <div class="card-sparkline" id="spark-current"></div>
+    </div>
+
+    <div class="card card--power" id="card-power">
+      <div class="card-header">
+        <span class="card-icon">🔋</span>
+        <span class="card-label">Power</span>
+      </div>
+      <div class="card-value"><span id="val-power">--</span><span class="card-unit">W</span></div>
+      <div class="card-sub">
+        <div class="power-bar-wrap">
+          <div class="power-bar" id="power-bar"></div>
+        </div>
+        <span id="power-pct" class="label-muted">0%</span>
+      </div>
+    </div>
+
+    <div class="card card--temp" id="card-temp">
+      <div class="card-header">
+        <span class="card-icon">🌡️</span>
+        <span class="card-label">Temperature</span>
+      </div>
+      <div class="card-value"><span id="val-temp">--</span><span class="card-unit">°C</span></div>
+      <div class="card-sub">
+        <span id="temp-status" class="badge badge--neutral">--</span>
+      </div>
+      <div class="card-sparkline" id="spark-temp"></div>
+    </div>
+
+  </section>
+
+  <!-- ===== MAIN CHART + CONTROLS ===== -->
+  <section class="middle-row">
+
+    <!-- Live Chart -->
+    <div class="panel chart-panel">
+      <div class="panel-header">
+        <span class="panel-title">📊 Live Sensor Trends</span>
+        <div class="chart-legend">
+          <span class="legend-dot" style="background:#06b6d4"></span>Voltage
+          <span class="legend-dot" style="background:#10b981"></span>Current
+          <span class="legend-dot" style="background:#f59e0b"></span>Temperature
+        </div>
+      </div>
+      <div id="main-chart"></div>
+    </div>
+
+    <!-- Status + Relay Controls -->
+    <div class="panel status-panel">
+      <div class="panel-header">
+        <span class="panel-title">🔌 Grid Status</span>
+      </div>
+
+      <!-- Grid / Battery Status -->
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">Grid Supply</span>
+          <span class="badge" id="badge-grid">ACTIVE</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Battery</span>
+          <span class="badge badge--success" id="badge-battery">CHARGING</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">AI Engine</span>
+          <span class="badge badge--info" id="badge-ai">RUNNING</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">MQTT</span>
+          <span class="badge" id="badge-mqtt">--</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Relay Controls -->
+      <div class="relay-section">
+        <span class="section-label">⚡ Relay Controls</span>
+        <div class="relay-grid">
+          <div class="relay-item">
+            <span class="relay-label">Main Relay</span>
+            <div class="relay-toggle" id="relay-main-wrap">
+              <button id="relay-main-on"  class="relay-btn relay-on"  onclick="sendRelay('main','ON')">ON</button>
+              <button id="relay-main-off" class="relay-btn relay-off active" onclick="sendRelay('main','OFF')">OFF</button>
+            </div>
+          </div>
+          <div class="relay-item">
+            <span class="relay-label">Load 1</span>
+            <div class="relay-toggle">
+              <button class="relay-btn relay-on"  onclick="sendRelay('load1','ON')">ON</button>
+              <button class="relay-btn relay-off active" onclick="sendRelay('load1','OFF')">OFF</button>
+            </div>
+          </div>
+          <div class="relay-item">
+            <span class="relay-label">Load 2</span>
+            <div class="relay-toggle">
+              <button class="relay-btn relay-on"  onclick="sendRelay('load2','ON')">ON</button>
+              <button class="relay-btn relay-off active" onclick="sendRelay('load2','OFF')">OFF</button>
+            </div>
+          </div>
+          <div class="relay-item">
+            <span class="relay-label">Backup</span>
+            <div class="relay-toggle">
+              <button class="relay-btn relay-on"  onclick="sendRelay('backup','ON')">ON</button>
+              <button class="relay-btn relay-off active" onclick="sendRelay('backup','OFF')">OFF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tamil Alert Panel -->
+      <div class="lang-alerts" id="lang-alert-panel">
+        <span class="section-label">🔔 Regional Alerts</span>
+        <div class="lang-alert-box" id="lang-alert-box">
+          <span class="lang-icon">✅</span>
+          <span id="lang-alert-text">அனைத்தும் சரியாக உள்ளது — All systems normal</span>
+        </div>
+        <div class="lang-btn-row">
+          <button class="lang-btn" onclick="speakAlert()">🔊 Speak Alert</button>
+          <button class="lang-btn" onclick="testAlert()">⚡ Test Alert</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== AI DECISION LOG ===== -->
+  <section class="bottom-row">
+    <div class="panel log-panel">
+      <div class="panel-header">
+        <span class="panel-title">🤖 AI Decision Log</span>
+        <button class="clear-btn" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-scroll" id="ai-log">
+        <div class="log-entry log-info">
+          <span class="log-time">--:--:--</span>
+          <span class="log-badge badge--info">INIT</span>
+          <span class="log-msg">Smart Grid AI Engine initialized — waiting for sensor data…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="panel stats-panel">
+      <div class="panel-header">
+        <span class="panel-title">📈 Session Stats</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">Readings</span>
+          <span class="stat-value" id="stat-readings">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Avg Voltage</span>
+          <span class="stat-value" id="stat-avg-v">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Peak Power</span>
+          <span class="stat-value" id="stat-peak-p">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">AI Actions</span>
+          <span class="stat-value" id="stat-ai-actions">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Alerts</span>
+          <span class="stat-value alert-count" id="stat-alerts">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Uptime</span>
+          <span class="stat-value" id="stat-uptime">00:00</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
