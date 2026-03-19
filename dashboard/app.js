@@ -7,8 +7,8 @@
 // Auto-detect backend URL.
 // If served via http:// (from Node.js), use the same host.
 // If opened as file://, fall back to localhost:3000.
-// ☁️ CLOUD DEPLOYMENT: If hosting this dashboard on Vercel, paste your Render backend URL below:
-const RENDER_BACKEND_URL = 'enerlytics-backend-production.up.railway.app'; // Points Vercel to true Railway cloud
+// ☁️ CLOUD DEPLOYMENT: If hosting this dashboard on Vercel, paste your Cloudflare backend URL below:
+const RENDER_BACKEND_URL = 'certificate-reflected-congratulations-conservative.trycloudflare.com'; // Points Vercel to your PC securely
 
 const _isFile    = location.protocol === 'file:';
 const _isVercel  = location.hostname.includes('vercel.app');

@@ -7,7 +7,8 @@
 #define WIFI_SSID       "Sebas"
 #define WIFI_PASSWORD   "1234seba"
 
-// Backend Server (Your PC's LAN IP while testing locally)
+// Backend Server (LAN Deployment - MAXIMUM STABILITY)
+// ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
 #define SERVER_HOST     "192.168.29.140"
 #define SERVER_PORT     3000
 #define SERVER_ENDPOINT "/smartgrid-data"

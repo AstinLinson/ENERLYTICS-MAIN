@@ -7,10 +7,10 @@
 #define WIFI_SSID       "Sebas"
 #define WIFI_PASSWORD   "1234seba"
 
-// Backend Server (Cloud Deployment)
-// Your backend is now hosted directly on Railway 24/7!
-#define SERVER_HOST     "enerlytics-backend-production.up.railway.app"
-#define SERVER_PORT     80
+// Backend Server (LAN Deployment - MAXIMUM STABILITY)
+// ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
+#define SERVER_HOST     "192.168.29.140"
+#define SERVER_PORT     3000
 #define SERVER_ENDPOINT "/smartgrid-data"
 
 // MQTT Broker (same machine as server)
