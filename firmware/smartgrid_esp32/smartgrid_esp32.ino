@@ -134,7 +134,11 @@ void sendDataHTTP(float voltage, float current, float temperature) {
   String payload;
   serializeJson(doc, payload);
 
-  String url = String("http://") + SERVER_HOST + ":" + SERVER_PORT + SERVER_ENDPOINT;
+  String protocol = SERVER_PORT == 443 ? "https://" : "http://";
+  String portStr = (SERVER_PORT == 80 || SERVER_PORT == 443) ? "" : String(":") + SERVER_PORT;
+  String url = protocol + SERVER_HOST + portStr + SERVER_ENDPOINT;
+  
+  httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   httpClient.begin(url);
   httpClient.addHeader("Content-Type", "application/json");
 
