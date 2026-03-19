@@ -45,23 +45,18 @@ body {
   overflow-x: hidden;
 }
 
-/* Animated 3D Gradient Background with Orbs */
-body::before, body::after {
-  content: ''; position: fixed; border-radius: 50%;
-  filter: blur(140px); z-index: 0; pointer-events: none;
-}
+/* Subtle gradient background (Static, not 3D) */
 body::before {
-  top: -10vh; left: -10vw; width: 50vw; height: 50vw;
-  background: var(--cyan-glow);
-  animation: float1 25s ease-in-out infinite alternate;
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(6,182,212,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,185,129,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
-body::after {
-  bottom: -15vh; right: -10vw; width: 60vw; height: 60vw;
-  background: rgba(139, 92, 246, 0.15); /* Purple tint */
-  animation: float2 30s ease-in-out infinite alternate;
-}
-@keyframes float1 { 100% { transform: translate(25vw, 15vh); background: rgba(16,185,129,0.15); } }
-@keyframes float2 { 100% { transform: translate(-20vw, -20vh); background: rgba(6,182,212,0.15); } }
 
 
 /* ===== ALERT BANNER ===== */
@@ -151,13 +146,13 @@ body::after {
 }
 
 .card {
-  background: rgba(12, 22, 45, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  background: rgba(12, 22, 45, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
   border-radius: var(--radius-lg);
   padding: 22px;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   position: relative; overflow: hidden;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   cursor: default;
@@ -238,13 +233,13 @@ body::after {
 
 /* ===== PANEL BASE ===== */
 .panel {
-  background: rgba(8, 16, 35, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  background: rgba(8, 16, 35, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
   border-radius: var(--radius-lg);
   padding: 22px;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
