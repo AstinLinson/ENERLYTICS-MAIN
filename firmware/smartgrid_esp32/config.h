@@ -7,9 +7,11 @@
 #define WIFI_SSID       "YOUR_WIFI_SSID"      // ← Replace with your WiFi name
 #define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"  // ← Replace with your WiFi password
 
-// Backend Server  ← Your PC's LAN IP on WiFi "YOUR_WIFI_SSID"
-#define SERVER_HOST     "192.168.29.140"    // ← Auto-detected PC IP. Update if it changes.
-#define SERVER_PORT     3000
+// Backend Server
+// If local: use your PC's IP (e.g., "192.168.1.5") and Port 3000
+// If cloud: use your Render domain (e.g., "my-api.onrender.com") and Port 80
+#define SERVER_HOST     "YOUR_RENDER_URL_OR_LOCAL_IP" // ← DO NOT include http://
+#define SERVER_PORT     80                            // ← 80 for Render cloud, 3000 for local PC
 #define SERVER_ENDPOINT "/smartgrid-data"
 
 // MQTT Broker (same machine as server)

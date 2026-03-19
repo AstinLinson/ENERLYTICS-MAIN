@@ -7,10 +7,14 @@
 // Auto-detect backend URL.
 // If served via http:// (from Node.js), use the same host.
 // If opened as file://, fall back to localhost:3000.
+// ☁️ CLOUD DEPLOYMENT: If hosting this dashboard on Vercel, paste your Render backend URL below:
+const RENDER_BACKEND_URL = ''; // e.g. 'enerlytics-backend.onrender.com'
+
 const _isFile    = location.protocol === 'file:';
-const _host      = _isFile ? 'localhost:3000' : location.host;
-const _protoWS   = location.protocol === 'https:' ? 'wss:' : 'ws:';
-const _protoAPI  = location.protocol === 'https:' ? 'https:' : 'http:';
+const _isCloud   = RENDER_BACKEND_URL !== '';
+const _host      = _isCloud ? RENDER_BACKEND_URL : (_isFile ? 'localhost:3000' : location.host);
+const _protoWS   = (location.protocol === 'https:' || _isCloud) ? 'wss:' : 'ws:';
+const _protoAPI  = (location.protocol === 'https:' || _isCloud) ? 'https:' : 'http:';
 const BACKEND_WS  = `${_protoWS}//${_host}`;
 const BACKEND_API = `${_protoAPI}//${_host}`;
 const POWER_LIMIT = 2000;
