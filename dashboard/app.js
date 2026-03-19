@@ -9,8 +9,10 @@
 // If opened as file://, fall back to localhost:3000.
 const _isFile    = location.protocol === 'file:';
 const _host      = _isFile ? 'localhost:3000' : location.host;
-const BACKEND_WS  = `ws://${_host}`;
-const BACKEND_API = `http://${_host}`;
+const _protoWS   = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const _protoAPI  = location.protocol === 'https:' ? 'https:' : 'http:';
+const BACKEND_WS  = `${_protoWS}//${_host}`;
+const BACKEND_API = `${_protoAPI}//${_host}`;
 const POWER_LIMIT = 2000;
 
 // =============================================
