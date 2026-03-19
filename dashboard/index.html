@@ -184,9 +184,15 @@
 
       <div class="divider"></div>
 
-      <!-- Tamil Alert Panel -->
+      <!-- Regional Alert Panel -->
       <div class="lang-alerts" id="lang-alert-panel">
-        <span class="section-label">🔔 Regional Alerts</span>
+        <div class="lang-header">
+          <span class="section-label">🔔 Regional Alerts</span>
+          <select id="lang-select" class="lang-select" onchange="changeLanguage()">
+            <option value="ta">Tamil (தமிழ்)</option>
+            <option value="ml">Malayalam (മലയാളം)</option>
+          </select>
+        </div>
         <div class="lang-alert-box" id="lang-alert-box">
           <span class="lang-icon">✅</span>
           <span id="lang-alert-text">அனைத்தும் சரியாக உள்ளது — All systems normal</span>

@@ -45,18 +45,24 @@ body {
   overflow-x: hidden;
 }
 
-/* Animated gradient background */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(6,182,212,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(16,185,129,0.03) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+/* Animated 3D Gradient Background with Orbs */
+body::before, body::after {
+  content: ''; position: fixed; border-radius: 50%;
+  filter: blur(140px); z-index: 0; pointer-events: none;
 }
+body::before {
+  top: -10vh; left: -10vw; width: 50vw; height: 50vw;
+  background: var(--cyan-glow);
+  animation: float1 25s ease-in-out infinite alternate;
+}
+body::after {
+  bottom: -15vh; right: -10vw; width: 60vw; height: 60vw;
+  background: rgba(139, 92, 246, 0.15); /* Purple tint */
+  animation: float2 30s ease-in-out infinite alternate;
+}
+@keyframes float1 { 100% { transform: translate(25vw, 15vh); background: rgba(16,185,129,0.15); } }
+@keyframes float2 { 100% { transform: translate(-20vw, -20vh); background: rgba(6,182,212,0.15); } }
+
 
 /* ===== ALERT BANNER ===== */
 .alert-banner {
@@ -145,11 +151,13 @@ body::before {
 }
 
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(12, 22, 45, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   border-radius: var(--radius-lg);
   padding: 22px;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   position: relative; overflow: hidden;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   cursor: default;
@@ -230,11 +238,13 @@ body::before {
 
 /* ===== PANEL BASE ===== */
 .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  background: rgba(8, 16, 35, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   border-radius: var(--radius-lg);
   padding: 22px;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -262,8 +272,16 @@ body::before {
 
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
-/* Relay controls */
+/* Relay controls & Lang header */
 .section-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 12px; }
+.lang-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.lang-header .section-label { margin-bottom: 0px; }
+.lang-select { 
+  background: rgba(255,255,255,0.05); color: #fff;
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; outline: none;
+}
+.lang-select option { background: var(--bg-surface); color: #fff; }
+
 .relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .relay-item {
   padding: 12px;

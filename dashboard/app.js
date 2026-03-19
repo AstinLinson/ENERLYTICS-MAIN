@@ -36,7 +36,8 @@ const state = {
     timestamps:  []
   },
 
-  // Current alert text (for Tamil speech)
+  // Current alert text (for Speech synthesis)
+  lang: 'ta',
   currentAlert: '',
   relayStates: { main: false, load1: false, load2: false, backup: false }
 };
@@ -220,14 +221,33 @@ function clearLog() {
 // =============================================
 //  ALERTS
 // =============================================
-const TAMIL_MESSAGES = {
-  overvoltage:  'அதிக மின்னழுத்தம் — Overvoltage detected! Relay disconnected.',
-  undervoltage: 'குறைந்த மின்னழுத்தம் — Undervoltage! Switching to battery backup.',
-  overtemp:     'அதிக வெப்பநிலை — High temperature! Charging relay turned OFF.',
-  overload:     'அதிக மின்சாரம் பயன்படுத்தப்படுகிறது — High power! Load shedding active.',
-  warning:      'எச்சரிக்கை — System warning. Monitor closely.',
-  normal:       'அனைத்தும் சரியாக உள்ளது — All systems normal'
+const MESSAGES = {
+  ta: {
+    overvoltage:  'அதிக மின்னழுத்தம் — Overvoltage detected! Relay disconnected.',
+    undervoltage: 'குறைந்த மின்னழுத்தம் — Undervoltage! Switching to battery backup.',
+    overtemp:     'அதிக வெப்பநிலை — High temperature! Charging relay turned OFF.',
+    overload:     'அதிக மின்சாரம் பயன்படுத்தப்படுகிறது — High power! Load shedding active.',
+    warning:      'எச்சரிக்கை — System warning. Monitor closely.',
+    normal:       'அனைத்தும் சரியாக உள்ளது — All systems normal'
+  },
+  ml: {
+    overvoltage:  'ഉയർന്ന വോൾട്ടേജ് — Overvoltage detected! Relay disconnected.',
+    undervoltage: 'കുറഞ്ഞ വോൾട്ടേജ് — Undervoltage! Switching to battery backup.',
+    overtemp:     'ഉയർന്ന താപനില — High temperature! Charging relay turned OFF.',
+    overload:     'അമിതഭാരം — High power! Load shedding active.',
+    warning:      'മുന്നറിയിപ്പ് — System warning. Monitor closely.',
+    normal:       'എല്ലാം സാധാരണ നിലയിലാണ് — All systems normal'
+  }
 };
+
+function changeLanguage() {
+  state.lang = document.getElementById('lang-select').value;
+  const icon = document.getElementById('lang-alert-box').querySelector('.lang-icon');
+  if (icon.textContent === '✅') {
+    state.currentAlert = MESSAGES[state.lang].normal;
+    document.getElementById('lang-alert-text').textContent = MESSAGES[state.lang].normal;
+  }
+}
 
 function showAlert(message, priority = 'high') {
   document.getElementById('alert-banner').classList.remove('hidden');
@@ -244,33 +264,34 @@ function dismissAlert() {
   document.getElementById('alert-banner').classList.add('hidden');
 }
 
-function updateTamilAlert(alerts) {
+function updateRegionalAlert(alerts) {
   const box = document.getElementById('lang-alert-box');
   const txt = document.getElementById('lang-alert-text');
   const icon = box.querySelector('.lang-icon');
+  const msgs = MESSAGES[state.lang];
 
   if (!alerts || alerts.length === 0) {
     box.className = 'lang-alert-box';
     icon.textContent = '✅';
-    txt.textContent = TAMIL_MESSAGES.normal;
-    state.currentAlert = TAMIL_MESSAGES.normal;
+    txt.textContent = msgs.normal;
+    state.currentAlert = msgs.normal;
     return;
   }
 
   const top = alerts[0];
-  let tamilMsg = TAMIL_MESSAGES.warning;
+  let localMsg = msgs.warning;
 
-  if (top.message.includes('voltage') || top.message.includes('voltage'.toLowerCase())) {
-    if (top.message.toLowerCase().includes('low') || top.message.includes('210')) tamilMsg = TAMIL_MESSAGES.undervoltage;
-    else tamilMsg = TAMIL_MESSAGES.overvoltage;
+  if (top.message.toLowerCase().includes('voltage')) {
+    if (top.message.toLowerCase().includes('low') || top.message.includes('10.5') || top.message.includes('210')) localMsg = msgs.undervoltage;
+    else localMsg = msgs.overvoltage;
   }
-  if (top.message.includes('emperature') || top.message.includes('45')) tamilMsg = TAMIL_MESSAGES.overtemp;
-  if (top.message.includes('load') || top.message.includes('2000')) tamilMsg = TAMIL_MESSAGES.overload;
+  if (top.message.toLowerCase().includes('emperature') || top.message.includes('45')) localMsg = msgs.overtemp;
+  if (top.message.toLowerCase().includes('load') || top.message.includes('50') || top.message.includes('2000')) localMsg = msgs.overload;
 
-  state.currentAlert = tamilMsg;
+  state.currentAlert = localMsg;
   box.className = 'lang-alert-box alert-critical';
   icon.textContent = '🚨';
-  txt.textContent = tamilMsg;
+  txt.textContent = localMsg;
 
   showAlert(top.message, top.priority);
 }
@@ -278,18 +299,19 @@ function updateTamilAlert(alerts) {
 function speakAlert() {
   if (!('speechSynthesis' in window)) { alert('Speech synthesis not supported in this browser.'); return; }
   const utter = new SpeechSynthesisUtterance(state.currentAlert);
-  utter.lang = 'ta-IN';
+  utter.lang = state.lang === 'ml' ? 'ml-IN' : 'ta-IN';
   utter.rate = 0.9;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utter);
 }
 
 function testAlert() {
-  state.currentAlert = TAMIL_MESSAGES.overload;
-  document.getElementById('lang-alert-text').textContent = TAMIL_MESSAGES.overload;
+  const msgs = MESSAGES[state.lang];
+  state.currentAlert = msgs.overload;
+  document.getElementById('lang-alert-text').textContent = msgs.overload;
   document.getElementById('lang-alert-box').className = 'lang-alert-box alert-critical';
   document.getElementById('lang-alert-box').querySelector('.lang-icon').textContent = '🚨';
-  showAlert('⚡ Test: அதிக மின்சாரம் — Simulated overload alert!', 'high');
+  showAlert('⚡ Test: ' + msgs.overload, 'high');
   speakAlert();
 }
 
@@ -336,7 +358,7 @@ function processData(data, decisions = [], alerts = []) {
   }
 
   // Handle alerts
-  updateTamilAlert(alerts);
+  updateRegionalAlert(alerts);
 }
 
 // =============================================
@@ -500,6 +522,7 @@ window.processData = function(data, decisions, alerts) {
 //  INIT
 // =============================================
 (function init() {
-  state.currentAlert = TAMIL_MESSAGES.normal;
+  state.currentAlert = MESSAGES[state.lang].normal;
+  document.getElementById('lang-alert-text').textContent = state.currentAlert;
   connectWebSocket();
 })();
