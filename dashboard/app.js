@@ -8,7 +8,7 @@
 // If served via http:// (from Node.js), use the same host.
 // If opened as file://, fall back to localhost:3000.
 // ☁️ CLOUD DEPLOYMENT: If hosting this dashboard on Vercel, paste your Render backend URL below:
-const RENDER_BACKEND_URL = 'smartgrid-live-2025.loca.lt'; // Points Vercel to your PC's secure localtunnel
+const RENDER_BACKEND_URL = 'enerlytics-backend-production.up.railway.app'; // Points Vercel to true Railway cloud
 
 const _isFile    = location.protocol === 'file:';
 const _isVercel  = location.hostname.includes('vercel.app');
