@@ -1,0 +1,638 @@
+{
+  "name": "Microgrid RAG Monitoring workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "microgrid-iot",
+        "options": {}
+      },
+      "id": "df8a1558-7bfa-47a4-b837-2158f2609589",
+      "name": "IoT Sensor Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        296,
+        400
+      ],
+      "webhookId": "dacdc702-2b6a-44fa-b9a1-c3b96cd45610"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const temp = $json.body?.temperature || $json.temperature || 72;\nconst voltage = $json.body?.voltage || $json.voltage || 235.5;\nconst current = $json.body?.current || $json.current || 12.4;\n\nconst power_output = (voltage * current).toFixed(2);\n\nreturn {\n  json: {\n    voltage: voltage,\n    current: current,\n    temperature: temp,\n    power_output: power_output,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "9e3862a9-6087-4702-9a17-b7a61b7037bc",
+      "name": "Calculate Power & Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        664,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.temperature }}",
+                    "rightValue": 50,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "ca950135-a815-42a6-ab56-0342c62afae6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Normal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.temperature }}",
+                    "rightValue": 50,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "53c7bd77-52fe-4076-bda7-a055d07e2bce"
+                  },
+                  {
+                    "leftValue": "={{ $json.temperature }}",
+                    "rightValue": 65,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "e42b9fb9-cef8-4f93-866d-f073c00f2c3c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Warning"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.temperature }}",
+                    "rightValue": 65,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "dc98cc99-1bc4-417b-ab2e-74ed634f4555"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Critical"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d67705c2-f979-47e1-97e2-238250622b8c",
+      "name": "Route by Temperature",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4",
+          "mode": "list",
+          "cachedResultName": "Microgrid Logs ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Voltage",
+              "displayName": "Voltage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current",
+              "displayName": "Current",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Temperature",
+              "displayName": "Temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e7726c81-206d-456b-8327-2c647d63ebed",
+      "name": "Log Normal Operations",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xPYWhThFydyOLopc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7171531571",
+        "text": "=⚠️ MICROGRID WARNING\n\nCheck System Required\n\nTemperature: {{ $json.temperature }}°C\nVoltage: {{ $json.voltage }}V\nCurrent: {{ $json.current }}A\nPower Output: {{ $json.power_output }}W\nTimestamp: {{ $json.timestamp }}",
+        "additionalFields": {}
+      },
+      "id": "5d8d7802-9c2f-41d0-9864-e2d78c92e5ba",
+      "name": "Send Warning Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        400
+      ],
+      "webhookId": "a2f68241-c748-4f68-ad45-7e15a9c11c63",
+      "credentials": {
+        "telegramApi": {
+          "id": "7ZXclzp2UmJ6XOAQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 1000,
+          "temperature": 1
+        }
+      },
+      "id": "987d7e6d-d7d0-4624-a57e-3974019a90b1",
+      "name": "OpenAI GPT Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1616,
+        928
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aOgBNmEPW9UjCD7X",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "microgrid_sop_vectors"
+        }
+      },
+      "id": "cd93c7db-c7e6-45f8-975b-417bba9a859a",
+      "name": "SOP Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3135ebb8-117c-4f32-8b83-9aa50ceb25d1",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        912
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aOgBNmEPW9UjCD7X",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ [{\"text\": \"MICROGRID EMERGENCY STANDARD OPERATING PROCEDURES\\n\\nCRITICAL TEMPERATURE PROTOCOL (≥65°C):\\n1. IMMEDIATE ACTIONS:\\n   - Activate emergency cooling systems\\n   - Reduce load by 30% within 2 minutes\\n   - Isolate affected circuit breakers\\n   - Alert on-site personnel\\n\\n2. SAFETY MEASURES:\\n   - Evacuate non-essential personnel from grid area\\n   - Engage fire suppression systems to standby\\n   - Monitor adjacent equipment temperatures\\n   - Establish 10-meter safety perimeter\\n\\n3. DIAGNOSTIC STEPS:\\n   - Check thermal imaging for hot spots\\n   - Verify cooling system functionality\\n   - Inspect for physical damage or arcing\\n   - Review power consumption patterns\\n\\n4. MITIGATION SEQUENCE:\\n   - Step 1: Activate backup cooling (0-5 min)\\n   - Step 2: Load shedding protocol (5-10 min)\\n   - Step 3: Switch to redundant circuits (10-15 min)\\n   - Step 4: Full system assessment (15-30 min)\\n\\n5. REPORTING:\\n   - Log all sensor readings\\n   - Document actions taken with timestamps\\n   - Notify grid operations center\\n   - Prepare incident report\\n\\nHIGH VOLTAGE SAFETY:\\n- Never approach equipment above 60°C\\n- Use thermal protective equipment\\n- Maintain minimum safe distances\\n- Follow lockout/tagout procedures\"}] }}",
+        "options": {}
+      },
+      "id": "f0a52f26-c732-4512-b489-548991d48905",
+      "name": "Microgrid SOP Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7171531571",
+        "text": "=🚨 CRITICAL MICROGRID EMERGENCY 🚨\n\nAI-GENERATED MITIGATION PLAN:\n{{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "450d2757-f8cc-4983-a11c-693f216c98f7",
+      "name": "Broadcast Emergency Plan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        696
+      ],
+      "webhookId": "61ccb7b8-c0a4-47ec-bc40-66796a6a4307",
+      "credentials": {
+        "telegramApi": {
+          "id": "7ZXclzp2UmJ6XOAQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4",
+          "mode": "list",
+          "cachedResultName": "Microgrid Logs ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17XfdhTpgDy6VbpYTVdwPX1RajU8LS6PyI5b7uX5cES4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Voltage": "={{ $('IoT Sensor Webhook').item.json.body.voltage }}",
+            "Current": "={{ $('IoT Sensor Webhook').item.json.body.current }}",
+            "Temperature": "={{ $('IoT Sensor Webhook').item.json.body.temperature }}",
+            "Status": "CRITICAL"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Voltage",
+              "displayName": "Voltage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current",
+              "displayName": "Current",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Temperature",
+              "displayName": "Temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "dac86932-e6cd-4dc3-8e44-c49509867dfc",
+      "name": "Log Emergency Report",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2112,
+        696
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xPYWhThFydyOLopc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "microgrid_sop_vectors"
+        }
+      },
+      "id": "1411c266-1974-46aa-998b-b9f7bde1bc78",
+      "name": "Insert SOP Documents",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        696
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CRITICAL ALERT - MICROGRID EMERGENCY\n\nYou are a Senior Grid Controller AI analyzing a critical temperature event.\n\nCURRENT SENSOR DATA:\n- Temperature: {{ $(\"Calculate Power & Format\").item.json.temperature }}°C (CRITICAL THRESHOLD EXCEEDED)\n- Voltage: {{ $(\"Calculate Power & Format\").item.json.voltage }}V\n- Current: {{ $(\"Calculate Power & Format\").item.json.current }}A\n- Power Output: {{ $(\"Calculate Power & Format\").item.json.power_output }}W\n- Timestamp: {{ $(\"Calculate Power & Format\").item.json.timestamp }}\n\nINSTRUCTIONS:\n1. Analyze the sensor data against safety thresholds\n2. Use the retrieved Microgrid Emergency SOP documents to formulate response\n3. Generate a detailed step-by-step mitigation plan\n4. Include specific actions with time estimates\n5. Highlight immediate safety concerns\n6. Provide clear, actionable instructions\n\nOutput a comprehensive emergency response plan.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a Senior Grid Controller AI with expertise in microgrid safety and emergency response. You have access to Standard Operating Procedures and must provide clear, actionable emergency mitigation plans based on real-time sensor data and retrieved safety documentation."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "97f2a7ee-c99a-4aa6-bc4e-17cf13d9e30c",
+      "name": "Critical RAG Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1536,
+        696
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1e7f0fed-d7a3-4aba-bfe2-6cc1aa72f607",
+      "name": "Retrieve SOP Context",
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        592,
+        592
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "IoT Sensor Webhook": {
+      "main": [
+        [
+          {
+            "node": "Calculate Power & Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Power & Format": {
+      "main": [
+        [
+          {
+            "node": "Route by Temperature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Temperature": {
+      "main": [
+        [
+          {
+            "node": "Log Normal Operations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Warning Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert SOP Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Critical RAG Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "SOP Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Insert SOP Documents",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Broadcast Emergency Plan": {
+      "main": [
+        [
+          {
+            "node": "Log Emergency Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert SOP Documents": {
+      "main": [
+        [
+          {
+            "node": "Critical RAG Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microgrid SOP Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert SOP Documents",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical RAG Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Broadcast Emergency Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SOP Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Retrieve SOP Context",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "572f783f-8b0d-4cf9-bd92-f482fae658c7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "174bf7503fcc5fbc4b7441d2de810ba03ad1e8031ab11cef7475e279b0dda576"
+  },
+  "id": "sfPWcXcm6kJxIvbY",
+  "tags": []
+}
