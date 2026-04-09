@@ -49,10 +49,10 @@ try {
     });
   });
 
-  mqttClient.on('message', (topic, payload) => {
+  mqttClient.on('message', async (topic, payload) => {
     try {
       const data = JSON.parse(payload.toString());
-      handleSensorData(data, 'mqtt');
+      await handleSensorData(data, 'mqtt');
     } catch (e) {
       console.error('[MQTT] Parse error:', e.message);
     }
@@ -80,7 +80,7 @@ function publishRelay(command, reason = '') {
 //  CORE DATA HANDLER
 //  Called from both HTTP POST and MQTT
 // =============================================
-function handleSensorData(data, source = 'http') {
+async function handleSensorData(data, source = 'http') {
   // Compute power if not provided
   if (!data.power) data.power = data.voltage * data.current;
 
@@ -89,7 +89,7 @@ function handleSensorData(data, source = 'http') {
   console.log(`[${source.toUpperCase()}] V=${data.voltage}V I=${data.current}A T=${data.temperature}°C P=${data.power.toFixed(1)}W`);
 
   // Run AI decisions
-  const { decisions } = makeDecision(data);
+  const { decisions, lstmPrediction, dqnStatus } = await makeDecision(data);
 
   // Execute any relay commands decided by AI
   for (const dec of decisions) {
@@ -112,7 +112,9 @@ function handleSensorData(data, source = 'http') {
     },
     decisions: decisions.map(d => ({ action: d.action, reason: d.reason, priority: d.priority, layer: d.layer })),
     alerts: alerts.map(a => ({ message: a.reason, priority: a.priority })),
-    thresholds: THRESHOLDS
+    thresholds: THRESHOLDS,
+    prediction: lstmPrediction,
+    healing: dqnStatus
   };
 
   const msg = JSON.stringify(broadcast);
@@ -139,7 +141,7 @@ app.get('/', (req, res) => {
 });
 
 // --- Receive sensor data from ESP32 ---
-app.post('/smartgrid-data', (req, res) => {
+app.post('/smartgrid-data', async (req, res) => {
   const { voltage, current, temperature, relay, deviceId } = req.body;
 
   if (voltage == null || current == null || temperature == null) {
@@ -147,7 +149,7 @@ app.post('/smartgrid-data', (req, res) => {
   }
 
   const data = { voltage: +voltage, current: +current, temperature: +temperature, relay, deviceId };
-  const { decisions, alerts } = handleSensorData(data, 'http');
+  const { decisions, alerts } = await handleSensorData(data, 'http');
 
   res.json({
     success: true,
@@ -169,6 +171,30 @@ app.get('/api/history', (req, res) => {
 });
 
 // --- Manual relay control ---
+// --- Settings API Endpoint ---
+app.post('/api/settings', (req, res) => {
+  const { powerLimit } = req.body;
+  if (powerLimit != null) {
+    THRESHOLDS.POWER_LIMIT = Number(powerLimit);
+    console.log(`[SETTINGS] Power Limit updated to: ${THRESHOLDS.POWER_LIMIT}W`);
+    
+    // Broadcast updated thresholds to all clients immediately
+    const broadcast = {
+      type: 'initial',
+      data: { voltage: 0, current: 0, temperature: 0, power: 0 }, // Dummy data, UI just uses it if it wants, but we mainly want THRESHOLDS
+      thresholds: THRESHOLDS
+    };
+    wss.clients.forEach(c => {
+      if (c.readyState === WebSocket.OPEN) {
+        c.send(JSON.stringify(broadcast));
+      }
+    });
+
+    return res.json({ success: true, newLimit: THRESHOLDS.POWER_LIMIT });
+  }
+  return res.status(400).json({ error: 'Invalid settings payload.' });
+});
+
 app.post('/api/relay', (req, res) => {
   const { relay } = req.body;
   if (!relay || !['ON', 'OFF'].includes(relay.toUpperCase())) {

@@ -17,7 +17,7 @@ const _protoWS   = (location.protocol === 'https:' || _isVercel) ? 'wss:' : 'ws:
 const _protoAPI  = (location.protocol === 'https:' || _isVercel) ? 'https:' : 'http:';
 const BACKEND_WS  = `${_protoWS}//${_host}`;
 const BACKEND_API = `${_protoAPI}//${_host}`;
-const POWER_LIMIT = 2000;
+let POWER_LIMIT = 500;
 
 // =============================================
 //  STATE
@@ -352,9 +352,28 @@ async function sendRelay(name, command) {
 }
 
 // =============================================
+//  SETTINGS OVERRIDE
+// =============================================
+async function updatePowerLimit() {
+  const newVal = document.getElementById('input-power-limit').value;
+  if (!newVal) return;
+  try {
+    await fetch(`${BACKEND_API}/api/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ powerLimit: newVal })
+    });
+    addLog(`Requested power limit change to ${newVal}W`, 'info', '');
+    showAlert(`Power limit successfully updated to ${newVal}W`, 'info');
+  } catch (e) {
+    showAlert('Error: Cannot reach backend to update settings', 'high');
+  }
+}
+
+// =============================================
 //  PROCESS INCOMING DATA (WS or simulated)
 // =============================================
-function processData(data, decisions = [], alerts = []) {
+function processData(data, decisions = [], alerts = [], prediction = null, healing = null) {
   updateCards(data);
   updateChart(data.voltage, data.current, data.temperature, data.timestamp || Date.now());
 
@@ -365,6 +384,28 @@ function processData(data, decisions = [], alerts = []) {
 
   // Handle alerts
   updateRegionalAlert(alerts);
+
+  // Update LSTM Prediction
+  if (prediction) {
+    document.getElementById('pred-v').textContent = prediction.predictedV.toFixed(1) + ' V';
+    document.getElementById('pred-i').textContent = prediction.predictedI.toFixed(2) + ' A';
+    document.getElementById('pred-t').textContent = prediction.predictedT.toFixed(1) + ' °C';
+    
+    const anomalyPct = (prediction.anomalyScore * 100).toFixed(0);
+    document.getElementById('anomaly-bar').style.width = anomalyPct + '%';
+    
+    const badge = document.getElementById('badge-anomaly');
+    badge.textContent = anomalyPct + '%';
+    if (anomalyPct > 70) badge.className = 'badge badge--danger';
+    else if (anomalyPct > 30) badge.className = 'badge badge--warning';
+    else badge.className = 'badge badge--success';
+  }
+
+  // Update DQN Agent Status
+  if (healing) {
+    document.getElementById('dqn-epsilon').textContent = (healing.epsilon || 1.0).toFixed(3);
+    document.getElementById('dqn-action').textContent = healing.action || 'HOLD';
+  }
 }
 
 // =============================================
@@ -387,10 +428,15 @@ function connectWebSocket() {
     ws.addEventListener('message', (evt) => {
       try {
         const msg = JSON.parse(evt.data);
+        if (msg.thresholds && msg.thresholds.POWER_LIMIT) {
+          POWER_LIMIT = msg.thresholds.POWER_LIMIT;
+          document.getElementById('input-power-limit').value = POWER_LIMIT;
+        }
+
         if (msg.type === 'sensor_update') {
-          processData(msg.data, msg.decisions || [], msg.alerts || []);
+          processData(msg.data, msg.decisions || [], msg.alerts || [], msg.prediction || null, msg.healing || null);
         } else if (msg.type === 'initial') {
-          updateCards(msg.data);
+          if (msg.data && msg.data.voltage !== 0) updateCards(msg.data);
         }
       } catch (e) {}
     });
@@ -481,11 +527,11 @@ function startSimulation() {
 
   // Immediate first update
   const { data, decisions, alerts } = generateSimData();
-  processData(data, decisions, alerts);
+  processData(data, decisions, alerts, null, null);
 
   state.simInterval = setInterval(() => {
     const { data, decisions, alerts } = generateSimData();
-    processData(data, decisions, alerts);
+    processData(data, decisions, alerts, null, null);
   }, 3000);
 }
 
@@ -519,8 +565,8 @@ function updateGridStatus(voltage) {
 
 // ===== Patch processData to also update grid status =====
 const _originalProcessData = processData;
-window.processData = function(data, decisions, alerts) {
-  _originalProcessData(data, decisions, alerts);
+window.processData = function(data, decisions, alerts, prediction, healing) {
+  _originalProcessData(data, decisions, alerts, prediction, healing);
   updateGridStatus(data.voltage);
 };
 

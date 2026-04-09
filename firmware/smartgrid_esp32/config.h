@@ -9,12 +9,12 @@
 
 // Backend Server (LAN Deployment - MAXIMUM STABILITY)
 // ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
-#define SERVER_HOST     "192.168.29.140"
+#define SERVER_HOST     "192.168.29.168"
 #define SERVER_PORT     3000
 #define SERVER_ENDPOINT "/smartgrid-data"
 
 // MQTT Broker (same machine as server)
-#define MQTT_BROKER     "192.168.29.140"    // ← Same IP as SERVER_HOST
+#define MQTT_BROKER     "192.168.29.168"    // ← Same IP as SERVER_HOST
 #define MQTT_PORT       1883
 #define MQTT_CLIENT_ID  "esp32_smartgrid"
 #define MQTT_PUB_TOPIC  "smartgrid/data"
@@ -27,8 +27,8 @@
 #define RELAY_PIN           26   // GPIO26   — Controls relay module
 
 // Sensor Calibration
-#define VOLTAGE_SCALE       0.48f   // Calibrated for 12V: actual(12) / shown(100) * old_scale
-#define CURRENT_OFFSET      2048    // ACS712 zero-current ADC reading (12-bit)
+#define VOLTAGE_SCALE       7.48f   // 12V system: actual(12V) / vADC(1.604V) = 7.48
+#define CURRENT_OFFSET      3103    // ACS712 zero-current midpoint (2.5V at 5V supply → 3103 in 12-bit ADC)
 #define CURRENT_SCALE       0.066f  // ACS712 30A sensitivity (V/A)
 #define VREF                3.3f    // ESP32 ADC reference voltage
 #define ADC_RESOLUTION      4096.0f

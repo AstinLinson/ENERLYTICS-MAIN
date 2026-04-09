@@ -398,6 +398,21 @@ body::before {
 }
 .card-alerting { animation: card-alert-pulse 1.5s infinite; border-color: var(--red) !important; }
 
+/* ===== AI PREDICTION PANELS ===== */
+.lstm-panel { display: flex; flex-direction: column; gap: 12px; }
+.pred-grid { display: flex; justify-content: space-between; gap: 10px; }
+.pred-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; flex: 1; text-align: center; }
+.pred-label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px; }
+.pred-value { font-size: 14px; font-weight: 700; color: var(--purple); font-variant-numeric: tabular-nums; }
+.anomaly-bar-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; position: relative; }
+.anomaly-bar { height: 100%; background: linear-gradient(90deg, var(--emerald), var(--red)); transition: width 0.4s ease; }
+
+.dqn-panel { display: flex; flex-direction: column; gap: 12px; }
+.healing-status { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); }
+.healing-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.healing-row:last-child { margin-bottom: 0; }
+.highlight-action { font-weight: 700; color: var(--cyan); text-transform: uppercase; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1100px) {
   .cards-grid   { grid-template-columns: repeat(2, 1fr); }

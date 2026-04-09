@@ -1,6 +1,6 @@
 // =============================================
 //  Smart Grid ESP32 Firmware
-//  Reads: Voltage | Current | Temperature
+//  Reads: Voltage (divider) | Current (ACS712) | Temperature (DHT11)
 //  Sends: HTTP POST to backend server
 //  Receives: MQTT relay commands
 // =============================================
@@ -9,7 +9,13 @@
 #include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <DHT.h>
 #include "config.h"
+
+// --- DHT Sensor Setup ---
+#define DHTPIN          TEMP_SENSOR_PIN   // GPIO 32
+#define DHTTYPE         DHT11
+DHT dht(DHTPIN, DHTTYPE);
 
 // --- Global Clients ---
 WiFiClient       wifiClient;
@@ -24,29 +30,50 @@ bool relayState = false;
 // =============================================
 
 float readVoltage() {
-  int raw = analogRead(VOLTAGE_SENSOR_PIN);
-  // Voltage divider: R1=100kΩ, R2=10kΩ — scales 0–250V to 0–3.3V
+  // Average multiple readings for stability
+  long total = 0;
+  for (int s = 0; s < 20; s++) {
+    total += analogRead(VOLTAGE_SENSOR_PIN);
+    delay(2);
+  }
+  int raw = total / 20;
   float vADC = (raw / ADC_RESOLUTION) * VREF;
-  return vADC * VOLTAGE_SCALE;
+  float voltage = vADC * VOLTAGE_SCALE;
+
+  Serial.printf("[DEBUG] Voltage raw=%d vADC=%.3f final=%.2fV\n", raw, vADC, voltage);
+  return voltage;
 }
 
 float readCurrent() {
-  // ACS712 — reads centered at ~2.5V for 0A
-  int raw = analogRead(CURRENT_SENSOR_PIN);
+  // Average multiple readings for stability
+  long total = 0;
+  for (int s = 0; s < 20; s++) {
+    total += analogRead(CURRENT_SENSOR_PIN);
+    delay(2);
+  }
+  int raw = total / 20;
   float vADC = (raw / ADC_RESOLUTION) * VREF;
   float vOffset = (CURRENT_OFFSET / ADC_RESOLUTION) * VREF;
-  return (vADC - vOffset) / CURRENT_SCALE;
+  float current = (vADC - vOffset) / CURRENT_SCALE;
+
+  // Only show positive current (absolute value)
+  current = abs(current);
+
+  Serial.printf("[DEBUG] Current raw=%d vADC=%.3f offset=%.3f final=%.2fA\n", raw, vADC, vOffset, current);
+  return current;
 }
 
 float readTemperature() {
-  // NTC Thermistor (10kΩ B=3950) or DS18B20 via single-wire
-  // Simplified NTC formula for demo:
-  int raw = analogRead(TEMP_SENSOR_PIN);
-  float resistance = (ADC_RESOLUTION / raw - 1.0f) * 10000.0f;
-  float steinhart = log(resistance / 10000.0f) / 3950.0f;
-  steinhart += 1.0f / (25.0f + 273.15f);
-  float tempK = 1.0f / steinhart;
-  return tempK - 273.15f;
+  float temp = dht.readTemperature();  // Celsius
+  float hum  = dht.readHumidity();
+
+  if (isnan(temp)) {
+    Serial.println("[DEBUG] DHT read failed! Using last known value.");
+    return -1;  // Error indicator
+  }
+
+  Serial.printf("[DEBUG] DHT temp=%.1f°C humidity=%.1f%%\n", temp, hum);
+  return temp;
 }
 
 // =============================================
@@ -159,8 +186,17 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+  Serial.println("\n========================================");
+  Serial.println("  Smart Grid ESP32 — Starting up...");
+  Serial.println("  Sensors: Voltage Divider + ACS712 + DHT11");
+  Serial.println("========================================");
+
   pinMode(RELAY_PIN, OUTPUT);
   setRelay(false); // Start with relay OFF
+
+  pinMode(DHTPIN, INPUT_PULLUP);  // Enable internal pull-up for DHT11
+  dht.begin();     // Initialize DHT11 sensor
+  delay(3000);     // DHT11 needs time to stabilize
 
   connectWiFi();
   connectMQTT();
@@ -186,7 +222,7 @@ void loop() {
     float i = readCurrent();
     float t = readTemperature();
 
-    Serial.printf("[SENSORS] V=%.1fV | I=%.2fA | T=%.1f°C | P=%.1fW\n",
+    Serial.printf("\n[SENSORS] V=%.1fV | I=%.2fA | T=%.1f°C | P=%.1fW\n\n",
                   v, i, v * i, t);
 
     // Send via HTTP POST

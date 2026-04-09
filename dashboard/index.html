@@ -76,8 +76,14 @@
 
     <div class="card card--power" id="card-power">
       <div class="card-header">
-        <span class="card-icon">🔋</span>
-        <span class="card-label">Power</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="card-icon">🔋</span>
+          <span class="card-label">Power Limit</span>
+        </div>
+        <div class="power-limit-control" style="display:flex; align-items:center; gap:4px; opacity:0.8;">
+          <input type="number" id="input-power-limit" value="500" style="width:60px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:2px 6px; border-radius:4px; outline:none; font-size:12px; font-weight:bold;">
+          <button onclick="updatePowerLimit()" style="background:rgba(16,185,129,0.3); border:1px solid rgba(16,185,129,0.6); color:#fff; border-radius:4px; padding:2px 8px; font-size:11px; cursor:pointer; font-weight:bold;">Set</button>
+        </div>
       </div>
       <div class="card-value"><span id="val-power">--</span><span class="card-unit">W</span></div>
       <div class="card-sub">
@@ -139,8 +145,49 @@
           <span class="badge badge--info" id="badge-ai">RUNNING</span>
         </div>
         <div class="status-item">
-          <span class="status-label">MQTT</span>
-          <span class="badge" id="badge-mqtt">--</span>
+          <span class="status-label">Anomaly Risk</span>
+          <span class="badge" id="badge-anomaly">0%</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- LSTM Prediction Panel -->
+      <div class="lstm-panel">
+        <span class="section-label">🧠 LSTM Forecast (T+30s)</span>
+        <div class="pred-grid">
+          <div class="pred-item">
+            <span class="pred-label">Voltage</span>
+            <span class="pred-value" id="pred-v">-- V</span>
+          </div>
+          <div class="pred-item">
+            <span class="pred-label">Current</span>
+            <span class="pred-value" id="pred-i">-- A</span>
+          </div>
+          <div class="pred-item">
+            <span class="pred-label">Temp</span>
+            <span class="pred-value" id="pred-t">-- °C</span>
+          </div>
+        </div>
+        <div class="anomaly-bar-wrap">
+          <div class="anomaly-bar" id="anomaly-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- DQN Agent Status -->
+      <div class="dqn-panel">
+        <span class="section-label">🤖 Self-Healing Agent (DQN)</span>
+        <div class="healing-status">
+          <div class="healing-row">
+            <span>Exploration (ε):</span>
+            <span id="dqn-epsilon">1.00</span>
+          </div>
+          <div class="healing-row">
+            <span>Last Action:</span>
+            <span id="dqn-action" class="highlight-action">waiting...</span>
+          </div>
         </div>
       </div>
 

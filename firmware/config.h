@@ -9,12 +9,12 @@
 
 // Backend Server (LAN Deployment - MAXIMUM STABILITY)
 // ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
-#define SERVER_HOST     "192.168.29.140"
+#define SERVER_HOST     "192.168.29.168"
 #define SERVER_PORT     3000
 #define SERVER_ENDPOINT "/smartgrid-data"
 
 // MQTT Broker (same machine as server)
-#define MQTT_BROKER     "192.168.29.140"    // ← Same IP as SERVER_HOST
+#define MQTT_BROKER     "192.168.29.168"    // ← Same IP as SERVER_HOST
 #define MQTT_PORT       1883
 #define MQTT_CLIENT_ID  "esp32_smartgrid"
 #define MQTT_PUB_TOPIC  "smartgrid/data"

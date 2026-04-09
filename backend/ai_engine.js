@@ -1,10 +1,17 @@
 // =============================================
 //  Smart Grid — AI Decision Engine
 //  Layer 1: Rule-Based (immediate safety)
-//  Layer 2: Q-Learning (energy optimization)
+//  Layer 2: LSTM (anomaly prediction)
+//  Layer 3: DQN (self-healing action)
 // =============================================
 
 const { logDecision } = require('./db');
+const LSTMPredictor = require('./lstm_model');
+const DQNAgent = require('./dqn_agent');
+
+// Initialize models
+const lstm = new LSTMPredictor();
+const dqn = new DQNAgent();
 
 // =============================================
 //  THRESHOLDS (match config.h)
@@ -12,76 +19,21 @@ const { logDecision } = require('./db');
 const THRESHOLDS = {
   TEMP_MAX:     45,    // °C
   TEMP_WARN:    40,    // °C
-  VOLTAGE_MIN:  10.5,  // V  — low battery
+  VOLTAGE_MIN:  10.5,  // V  — low battery for 12V system
   VOLTAGE_MAX:  14.5,  // V  — overvoltage
-  POWER_LIMIT:  50,    // W  — overload for 12V system
-  CURRENT_MAX:  4      // A
+  POWER_LIMIT:  500,   // W  — overload (increased to ignore phantom readings)
+  CURRENT_MAX:  30     // A
 };
 
 // =============================================
-//  Q-LEARNING STATE / ACTION SPACE
+//  ACTION COMMANDS
 // =============================================
-// State: [voltageZone, loadLevel, batteryLevel(simulated)]
-// Action: {0: relay OFF, 1: relay ON, 2: reduce load, 3: hold}
-// Reward: +1 energy saved, -2 for unsafe state, 0 for neutral
-
-const Q = {};          // Q-table: state_key → [q0, q1, q2, q3]
-const ALPHA = 0.1;     // Learning rate
-const GAMMA = 0.9;     // Discount factor
-let EPSILON = 0.2;     // Exploration rate (decays over time)
-let stepCount = 0;
-
-function getStateKey(data) {
-  const voltZone = data.voltage < 210 ? 'low' : data.voltage > 240 ? 'high' : 'normal';
-  const loadLevel = data.power < 500 ? 'light' : data.power < 1500 ? 'medium' : 'heavy';
-  const tempZone = data.temperature < 35 ? 'cool' : data.temperature < 43 ? 'warm' : 'hot';
-  return `${voltZone}|${loadLevel}|${tempZone}`;
-}
-
-function initQState(key) {
-  if (!Q[key]) Q[key] = [0, 0, 0, 0]; // [relay_off, relay_on, reduce_load, hold]
-}
-
-function chooseAction(stateKey) {
-  initQState(stateKey);
-  if (Math.random() < EPSILON) {
-    return Math.floor(Math.random() * 4); // Explore
-  }
-  return Q[stateKey].indexOf(Math.max(...Q[stateKey])); // Exploit
-}
-
-function computeReward(data, action) {
-  let reward = 0;
-  // Penalize unsafe states
-  if (data.temperature > THRESHOLDS.TEMP_MAX) reward -= 3;
-  if (data.voltage < THRESHOLDS.VOLTAGE_MIN)  reward -= 2;
-  if (data.power > THRESHOLDS.POWER_LIMIT)    reward -= 2;
-  // Reward energy savings
-  if (action === 0 && data.power > 1000) reward += 1.5; // Relay off under high load = good
-  if (action === 2 && data.power > 1500) reward += 2;   // Reduce load when heavy = good
-  if (action === 1 && data.voltage > 220 && data.temperature < 38) reward += 1; // Safe to turn on
-  return reward;
-}
-
-function updateQ(stateKey, action, reward, nextStateKey) {
-  initQState(stateKey);
-  initQState(nextStateKey);
-  const maxNext = Math.max(...Q[nextStateKey]);
-  Q[stateKey][action] += ALPHA * (reward + GAMMA * maxNext - Q[stateKey][action]);
-  // Decay exploration
-  if (stepCount % 50 === 0) EPSILON = Math.max(0.05, EPSILON * 0.99);
-  stepCount++;
-}
-
-// =============================================
-//  ACTION NAMES
-// =============================================
-const ACTION_NAMES = ['relay_off', 'relay_on', 'reduce_load', 'hold'];
 const ACTION_COMMANDS = {
-  relay_off:    { relay: 'OFF' },
-  relay_on:     { relay: 'ON' },
-  reduce_load:  { relay: 'OFF', alert: 'reduce_load' },
-  hold:         null
+  relay_off:     { relay: 'OFF' },
+  relay_on:      { relay: 'ON' },
+  reduce_load:   { relay: 'OFF', alert: 'reduce_load' }, // In a real system, might target a specific load relay
+  switch_backup: { relay: 'OFF', alert: 'backup_active' },
+  hold:          null
 };
 
 // =============================================
@@ -93,15 +45,15 @@ function ruleBasedDecision(data) {
   if (data.temperature > THRESHOLDS.TEMP_MAX) {
     alerts.push({
       action: 'relay_off',
-      reason: `🌡️ Overtemperature: ${data.temperature}°C > ${THRESHOLDS.TEMP_MAX}°C — Relay OFF for safety`,
+      reason: `🌡️ Overtemperature: ${data.temperature.toFixed(1)}°C > ${THRESHOLDS.TEMP_MAX}°C — Safety OFF`,
       priority: 'critical'
     });
   }
 
   if (data.voltage < THRESHOLDS.VOLTAGE_MIN) {
     alerts.push({
-      action: 'relay_off',
-      reason: `⚡ Low voltage: ${data.voltage}V < ${THRESHOLDS.VOLTAGE_MIN}V — Switching to battery backup`,
+      action: 'switch_backup',
+      reason: `⚡ Low voltage: ${data.voltage.toFixed(1)}V < ${THRESHOLDS.VOLTAGE_MIN}V — Battery backup`,
       priority: 'critical'
     });
   }
@@ -109,7 +61,7 @@ function ruleBasedDecision(data) {
   if (data.voltage > THRESHOLDS.VOLTAGE_MAX) {
     alerts.push({
       action: 'relay_off',
-      reason: `⚡ Overvoltage: ${data.voltage}V > ${THRESHOLDS.VOLTAGE_MAX}V — Protective disconnect`,
+      reason: `⚡ Overvoltage: ${data.voltage.toFixed(1)}V > ${THRESHOLDS.VOLTAGE_MAX}V — Disconnect`,
       priority: 'critical'
     });
   }
@@ -122,68 +74,94 @@ function ruleBasedDecision(data) {
     });
   }
 
-  if (data.temperature > THRESHOLDS.TEMP_WARN && data.temperature <= THRESHOLDS.TEMP_MAX) {
-    alerts.push({
-      action: 'hold',
-      reason: `⚠️ Temperature warning: ${data.temperature}°C — Monitor closely`,
-      priority: 'warning'
-    });
-  }
+  // Generate a synthesized anomaly score for DQN training if rules trigger
+  let manualAnomaly = 0;
+  if (alerts.length > 0) manualAnomaly = 1.0;
+  else if (data.temperature > THRESHOLDS.TEMP_WARN) manualAnomaly = 0.5;
 
-  return alerts;
+  return { alerts, manualAnomaly };
 }
 
 // =============================================
-//  MAIN DECISION FUNCTION
+//  REWARD FUNCTION FOR DQN
 // =============================================
-let prevStateKey = null;
-let prevAction = null;
+function computeReward(data, action) {
+  let reward = 0;
+  if (data.temperature > THRESHOLDS.TEMP_MAX) reward -= 5;
+  if (data.voltage < THRESHOLDS.VOLTAGE_MIN)  reward -= 3;
+  if (data.power > THRESHOLDS.POWER_LIMIT)    reward -= 3;
+  
+  if (action === 'relay_off' && data.power > THRESHOLDS.POWER_LIMIT) reward += 2;
+  if (action === 'reduce_load' && data.power > THRESHOLDS.POWER_LIMIT * 0.8) reward += 2;
+  if (action === 'relay_on' && data.voltage >= THRESHOLDS.VOLTAGE_MIN && data.temperature < THRESHOLDS.TEMP_WARN) reward += 1;
+  if (action === 'switch_backup' && data.voltage < THRESHOLDS.VOLTAGE_MIN) reward += 3;
+  
+  return reward;
+}
 
-function makeDecision(data) {
+// =============================================
+//  MAIN DECISION FUNCTION (ASYNC)
+// =============================================
+let prevStateVector = null;
+let prevActionName = null;
+
+async function makeDecision(data) {
   const decisions = [];
 
-  // --- Layer 1: Rule-Based ---
-  const rules = ruleBasedDecision(data);
-  if (rules.length > 0) {
-    for (const rule of rules) {
+  // 1. Layer 1: Rule-Based
+  const { alerts, manualAnomaly } = ruleBasedDecision(data);
+  for (const rule of alerts) {
+    logDecision({ voltage: data.voltage, current: data.current, temperature: data.temperature },
+                rule.action, rule.reason, null);
+    decisions.push({ ...rule, layer: 'rule-based', command: ACTION_COMMANDS[rule.action] });
+  }
+
+  // 2. Layer 2: LSTM Anomaly Prediction
+  let lstmPrediction = await lstm.processReading(data);
+  if (!lstmPrediction) {
+    // If not enough data buffer, pass default prediction
+    lstmPrediction = { predictedV: data.voltage, predictedI: data.current, predictedT: data.temperature, anomalyScore: manualAnomaly };
+  } else {
+    // Merge manual rule-based anomaly knowledge into LSTM score for training/state
+    lstmPrediction.anomalyScore = Math.max(lstmPrediction.anomalyScore, manualAnomaly);
+  }
+
+  // 3. Layer 3: DQN Agent
+  const stateVector = dqn.getStateVector(data, lstmPrediction);
+  
+  // Update DQN memory with previous transition
+  if (prevStateVector && prevActionName) {
+     const reward = computeReward(data, prevActionName);
+     dqn.remember(prevStateVector, prevActionName, reward, stateVector, false);
+     await dqn.replay(); // Train
+  }
+
+  // If rules triggered a critical override, we respect it and don't let DQN act
+  let finalDqnAction = null;
+  const isCritical = alerts.some(r => r.priority === 'critical');
+  
+  if (!isCritical) {
+    finalDqnAction = dqn.act(stateVector);
+    
+    if (finalDqnAction && finalDqnAction !== 'hold') {
+      const rlReason = `🤖 Auto-Healing | Action: ${finalDqnAction} | Anomaly: ${(lstmPrediction.anomalyScore*100).toFixed(0)}%`;
       logDecision({ voltage: data.voltage, current: data.current, temperature: data.temperature },
-                  rule.action, rule.reason, null);
-      decisions.push({ ...rule, layer: 'rule-based', command: ACTION_COMMANDS[rule.action] });
-    }
-    // If critical — skip RL this cycle, safety first
-    if (rules.some(r => r.priority === 'critical')) {
-      return { decisions, rlAction: null, stateKey: getStateKey(data) };
+                  finalDqnAction, rlReason, null);
+                  
+      decisions.push({
+        action: finalDqnAction,
+        reason: rlReason,
+        priority: 'info',
+        layer: 'dqn-agent',
+        command: ACTION_COMMANDS[finalDqnAction]
+      });
     }
   }
 
-  // --- Layer 2: Q-Learning ---
-  const stateKey = getStateKey(data);
+  prevStateVector = stateVector;
+  prevActionName = finalDqnAction || alerts[0]?.action || 'hold';
 
-  // Update Q-table from previous step
-  if (prevStateKey !== null && prevAction !== null) {
-    const reward = computeReward(data, prevAction);
-    updateQ(prevStateKey, prevAction, reward, stateKey);
-  }
-
-  const actionIdx = chooseAction(stateKey);
-  const actionName = ACTION_NAMES[actionIdx];
-
-  prevStateKey = stateKey;
-  prevAction = actionIdx;
-
-  const rlReason = `🤖 RL (Q-Learning) | State: ${stateKey} | Action: ${actionName} | ε=${EPSILON.toFixed(3)}`;
-  logDecision({ voltage: data.voltage, current: data.current, temperature: data.temperature },
-              actionName, rlReason, computeReward(data, actionIdx));
-
-  decisions.push({
-    action: actionName,
-    reason: rlReason,
-    priority: 'info',
-    layer: 'q-learning',
-    command: ACTION_COMMANDS[actionName]
-  });
-
-  return { decisions, rlAction: actionName, stateKey };
+  return { decisions, lstmPrediction, dqnStatus: { epsilon: dqn.epsilon, action: finalDqnAction } };
 }
 
 module.exports = { makeDecision, THRESHOLDS };
