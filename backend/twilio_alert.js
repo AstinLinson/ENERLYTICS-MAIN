@@ -5,7 +5,7 @@
 // =============================================
 
 let lastAlertTime = {};         // Per-faultType cooldown
-const COOLDOWN_MS = 300_000;    // 5 minutes
+const COOLDOWN_MS = 10_000;    // 10 seconds for Hackathon presentation
 
 async function sendSMSAlert(severity, faultType, message) {
   const TWILIO_SID   = process.env.TWILIO_SID;

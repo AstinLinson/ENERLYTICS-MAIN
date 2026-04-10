@@ -72,7 +72,7 @@ function ruleBasedDecision(data) {
     alerts.push({
       action: 'reduce_load',
       reason: `🔋 Overload: ${data.power.toFixed(0)}W > ${THRESHOLDS.POWER_LIMIT}W — Load shedding`,
-      priority: 'high'
+      priority: 'critical'
     });
   }
 

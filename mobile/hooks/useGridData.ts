@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 // Use your LAN IP while developing on Expo Go
 // Replace with your Cloudflare Tunnel URL when deploying remotely
-const BACKEND_WS = process.env.EXPO_PUBLIC_WS_URL || 'ws://192.168.29.140:3000';
+const BACKEND_WS = process.env.EXPO_PUBLIC_WS_URL || 'ws://10.70.61.140:3000';
 
 export interface GridData {
   voltage: number;

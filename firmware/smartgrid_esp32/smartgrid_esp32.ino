@@ -6,6 +6,7 @@
 // =============================================
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -19,10 +20,12 @@ DHT dht(DHTPIN, DHTTYPE);
 
 // --- Global Clients ---
 WiFiClient       wifiClient;
+WiFiClientSecure secureClient;
 PubSubClient     mqttClient(wifiClient);
 HTTPClient       httpClient;
 
 unsigned long lastSendTime = 0;
+unsigned long lastMqttReconnectAttempt = 0;
 bool relayState = false;
 
 // =============================================
@@ -161,13 +164,23 @@ void sendDataHTTP(float voltage, float current, float temperature) {
   String payload;
   serializeJson(doc, payload);
 
-  String protocol = SERVER_PORT == 443 ? "https://" : "http://";
-  String portStr = (SERVER_PORT == 80 || SERVER_PORT == 443) ? "" : String(":") + SERVER_PORT;
-  String url = protocol + SERVER_HOST + portStr + SERVER_ENDPOINT;
-  
+  String url;
+  if (SERVER_PORT == 443) {
+    // HTTPS mode — use WiFiClientSecure for Cloudflare tunnel
+    secureClient.setInsecure(); // Skip certificate validation
+    url = String("https://") + SERVER_HOST + SERVER_ENDPOINT;
+    httpClient.begin(secureClient, url);
+  } else {
+    // Local HTTP mode — direct LAN connection
+    String portStr = (SERVER_PORT == 80) ? "" : String(":") + SERVER_PORT;
+    url = String("http://") + SERVER_HOST + portStr + SERVER_ENDPOINT;
+    httpClient.begin(url);
+  }
+
+  Serial.printf("[HTTP] Sending to: %s\n", url.c_str());
   httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  httpClient.begin(url);
   httpClient.addHeader("Content-Type", "application/json");
+  httpClient.setTimeout(10000); // 10 second timeout for cloud connections
 
   int httpCode = httpClient.POST(payload);
   if (httpCode > 0) {
@@ -209,12 +222,19 @@ void setup() {
 // =============================================
 
 void loop() {
-  // Keep MQTT alive
-  if (!mqttClient.connected()) connectMQTT();
-  mqttClient.loop();
+  unsigned long now = millis();
+
+  // Keep MQTT alive (retry only once every 5 seconds so it doesn't spam)
+  if (!mqttClient.connected()) {
+    if (now - lastMqttReconnectAttempt > 5000) {
+      lastMqttReconnectAttempt = now;
+      connectMQTT();
+    }
+  } else {
+    mqttClient.loop();
+  }
 
   // Send sensor data on interval
-  unsigned long now = millis();
   if (now - lastSendTime >= READ_INTERVAL_MS) {
     lastSendTime = now;
 

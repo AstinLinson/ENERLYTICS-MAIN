@@ -4,16 +4,15 @@
 #pragma once
 
 // WiFi Credentials
-#define WIFI_SSID       "Abishek's iPhone"
-#define WIFI_PASSWORD   "abishek3243"
+#define WIFI_SSID       "a2mpot"
+#define WIFI_PASSWORD   "25122006"
 
-// Backend Server (Cloud Tunnel - BYPASSES FIREWALLS)
-// The ESP32 sends data to the internet, and Cloudflare beams it back to your laptop!
-#define SERVER_HOST     "during-cameron-supreme-advertisements.trycloudflare.com"
-#define SERVER_PORT     80
+// Backend Server (Direct LAN — same WiFi)
+#define SERVER_HOST     "10.1.35.84"
+#define SERVER_PORT     3000
 #define SERVER_ENDPOINT "/smartgrid-data"
 
-// MQTT Broker (local IP stays fixed)
+// MQTT Broker (same machine as server)
 #define MQTT_BROKER     "10.1.35.84"
 #define MQTT_PORT       1883
 #define MQTT_CLIENT_ID  "esp32_smartgrid"
@@ -28,7 +27,7 @@
 
 // Sensor Calibration — 12V DC System
 // Voltage divider: R1=30kΩ, R2=10kΩ → 12V maps to ~3V at ADC pin
-#define VOLTAGE_SCALE       0.48f   // Calibrated: 4.0 × (12V actual / 100V shown) = 0.48
+#define VOLTAGE_SCALE       7.48f   // Calibrated for voltage divider (actual/vADC)
 #define CURRENT_OFFSET      2048    // ACS712 zero-current midpoint (12-bit ADC)
 #define CURRENT_SCALE       0.185f  // ACS712 5A module  (0.1 for 20A, 0.066 for 30A)
 #define VREF                3.3f    // ESP32 ADC reference voltage

@@ -248,7 +248,7 @@ wss.on('connection', (ws, req) => {
 // =============================================
 //  START SERVER
 // =============================================
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n╔════════════════════════════════════════╗`);
   console.log(`║   Smart Grid Backend Server            ║`);
   console.log(`║   HTTP  → http://localhost:${PORT}        ║`);
