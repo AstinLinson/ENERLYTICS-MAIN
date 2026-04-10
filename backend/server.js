@@ -2,6 +2,7 @@
 //  Smart Grid — Main Backend Server
 //  Express REST API + WebSocket + MQTT Client
 // =============================================
+require('dotenv').config({ path: __dirname + '/.env' });
 
 const express  = require('express');
 const cors     = require('cors');
@@ -29,7 +30,8 @@ const wss    = new WebSocket.Server({ server });
 // =============================================
 app.use(cors());
 app.use(express.json());
-app.use(express.static('../dashboard'));   // Serve dashboard from http://localhost:3000
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../dashboard')));   // Serve dashboard from http://localhost:3000
 
 
 // =============================================
@@ -89,7 +91,7 @@ async function handleSensorData(data, source = 'http') {
   console.log(`[${source.toUpperCase()}] V=${data.voltage}V I=${data.current}A T=${data.temperature}°C P=${data.power.toFixed(1)}W`);
 
   // Run AI decisions
-  const { decisions, lstmPrediction, dqnStatus } = await makeDecision(data);
+  const { decisions, lstmPrediction, dqnStatus, fault } = await makeDecision(data);
 
   // Execute any relay commands decided by AI
   for (const dec of decisions) {
@@ -114,7 +116,8 @@ async function handleSensorData(data, source = 'http') {
     alerts: alerts.map(a => ({ message: a.reason, priority: a.priority })),
     thresholds: THRESHOLDS,
     prediction: lstmPrediction,
-    healing: dqnStatus
+    healing: dqnStatus,
+    fault: fault ? { type: fault.faultType, severity: fault.severity, message: fault.message } : null
   };
 
   const msg = JSON.stringify(broadcast);

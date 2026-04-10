@@ -8,6 +8,8 @@
 const { logDecision } = require('./db');
 const LSTMPredictor = require('./lstm_model');
 const DQNAgent = require('./dqn_agent');
+const { classifyFault } = require('./fault_classifier');
+const { sendSMSAlert } = require('./twilio_alert');
 
 // Initialize models
 const lstm = new LSTMPredictor();
@@ -161,7 +163,17 @@ async function makeDecision(data) {
   prevStateVector = stateVector;
   prevActionName = finalDqnAction || alerts[0]?.action || 'hold';
 
-  return { decisions, lstmPrediction, dqnStatus: { epsilon: dqn.epsilon, action: finalDqnAction } };
+  // 4. Fault Classification
+  const fault = classifyFault(alerts, lstmPrediction, { epsilon: dqn.epsilon, action: finalDqnAction }, data, THRESHOLDS);
+
+  // 5. Dispatch SMS if needed
+  if (fault.shouldAlert) {
+    sendSMSAlert(fault.severity, fault.faultType, fault.message).catch(e => {
+      console.error('[AI] SMS dispatch error:', e.message);
+    });
+  }
+
+  return { decisions, lstmPrediction, dqnStatus: { epsilon: dqn.epsilon, action: finalDqnAction }, fault };
 }
 
 module.exports = { makeDecision, THRESHOLDS };

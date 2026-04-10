@@ -4,17 +4,17 @@
 #pragma once
 
 // WiFi Credentials
-#define WIFI_SSID       "Sebas"
-#define WIFI_PASSWORD   "1234seba"
+#define WIFI_SSID       "Abishek's iPhone"
+#define WIFI_PASSWORD   "abishek3243"
 
-// Backend Server (LAN Deployment - MAXIMUM STABILITY)
-// ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
-#define SERVER_HOST     "192.168.29.168"
-#define SERVER_PORT     3000
+// Backend Server (Cloud Tunnel - BYPASSES FIREWALLS)
+// The ESP32 sends data to the internet, and Cloudflare beams it back to your laptop!
+#define SERVER_HOST     "during-cameron-supreme-advertisements.trycloudflare.com"
+#define SERVER_PORT     80
 #define SERVER_ENDPOINT "/smartgrid-data"
 
-// MQTT Broker (same machine as server)
-#define MQTT_BROKER     "192.168.29.168"    // ← Same IP as SERVER_HOST
+// MQTT Broker (local IP stays fixed)
+#define MQTT_BROKER     "10.1.35.84"
 #define MQTT_PORT       1883
 #define MQTT_CLIENT_ID  "esp32_smartgrid"
 #define MQTT_PUB_TOPIC  "smartgrid/data"

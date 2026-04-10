@@ -365,8 +365,34 @@ async function updatePowerLimit() {
     });
     addLog(`Requested power limit change to ${newVal}W`, 'info', '');
     showAlert(`Power limit successfully updated to ${newVal}W`, 'info');
-  } catch (e) {
-    showAlert('Error: Cannot reach backend to update settings', 'high');
+  } catch (err) {
+    showAlert('Error: Could not reach backend', 'error', 3000);
+  }
+}
+
+// ==========================================
+// SIMULATE CRITICAL FAULT (TEST SMS)
+// ==========================================
+async function simulateCriticalFault() {
+  const badData = {
+    voltage: 285.5,
+    current: 45.2,
+    temperature: 95.0,
+    power: 12904.6
+  };
+  try {
+    const res = await fetch('/smartgrid-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(badData)
+    });
+    if (res.ok) {
+      showAlert('CRITICAL FAULT TRIGGERED. SMS Dispatched!', 'critical', 5000);
+    } else {
+      showAlert('Failed to trigger fault.', 'error', 3000);
+    }
+  } catch (err) {
+    showAlert('Error connecting to backend.', 'error', 3000);
   }
 }
 

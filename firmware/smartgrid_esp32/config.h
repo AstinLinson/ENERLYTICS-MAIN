@@ -4,8 +4,8 @@
 #pragma once
 
 // WiFi Credentials
-#define WIFI_SSID       "Sebas"
-#define WIFI_PASSWORD   "1234seba"
+#define WIFI_SSID       "Hackathon"
+#define WIFI_PASSWORD   "hackathon2k26"
 
 // Backend Server (LAN Deployment - MAXIMUM STABILITY)
 // ESP32 sends data to your Laptop, and your Laptop beams it to Vercel via Cloudflare!
