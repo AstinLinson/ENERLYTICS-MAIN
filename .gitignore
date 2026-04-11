@@ -20,6 +20,9 @@ Thumbs.db
 *.hex
 build/
 
+# Runtime logs
+cf.log
+
 # Editor
 .vscode/
 *.swp
