@@ -1,4 +1,4 @@
-# ⚡ Smart Grid Energy Monitoring & Control System
+# Smart Grid Energy Monitoring & Control System
 
 > **SIH 2025 Project** — IoT + Automation + AI + Real-time Dashboard
 
