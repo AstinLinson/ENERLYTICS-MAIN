@@ -107,12 +107,12 @@ Install via Arduino Library Manager:
 - **Exploration**: ε-greedy with decay (ε: 0.2 → 0.05)
 
 ## Dashboard Features
-- 📊 Live voltage / current / temperature charts (ApexCharts)
-- 🔌 Relay ON/OFF controls (4 relays)
-- 🤖 AI Decision Log (rule-based + RL decisions)
-- 🔔 Tamil regional alerts with voice synthesis
-- 📈 Session statistics (peak power, avg voltage, uptime)
-- 🌐 Auto-reconnecting WebSocket
+-  Live voltage / current / temperature charts (ApexCharts)
+-  Relay ON/OFF controls (4 relays)
+-  AI Decision Log (rule-based + RL decisions)
+-  Tamil regional alerts with voice synthesis
+-  Session statistics (peak power, avg voltage, uptime)
+-  Auto-reconnecting WebSocket
 
 ## MQTT Topics
 
